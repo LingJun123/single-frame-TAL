@@ -5,7 +5,7 @@ import torch
 from model import Model
 from video_dataset import Dataset
 from test import test
-from stage2 import train_stage2
+from stage2 import train
 from tensorboard_logger import Logger
 import options
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -43,8 +43,8 @@ if __name__ == '__main__':
     # baseline = [59.1,53.5,44.2,34.1,26.6,8.1]
     best05 = 0.0
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=0.0005)
-    args.max_iter = 6001
-    for itr in range(args.max_iter):
+    args.max_iter = 12001
+    for itr in range(5001,args.max_iter):
         dataset.t_max = t_max
         if itr % 2:      # itr 为偶数，且不为零
             dataset.t_max = -1
