@@ -627,37 +627,51 @@ def train(itr, dataset, args, model, optimizer, logger, device):
     actionExit_r = LIST(point_indexs)
     actionExit = LIST(point_indexs)
     FLAG = False
-    if itr % 2:
-        FLAG = True
-        actionExit_f, actionNoExit_f = SEGMENT(feature_f, logits_f, action_f, seq_len, args.batch_size,
-                                               point_indexs, gtlabel, args, device)
-        actionExit_r, actionNoExit_r = SEGMENT(feature_r, logits_r, action_r, seq_len, args.batch_size,
-                                               point_indexs, gtlabel, args, device)
-        actionExit, actionNoExit = SEGMENT(features, tcam, action_all, seq_len, args.batch_size, point_indexs,
-                                           gtlabel, args, device)
+    if itr > 6000:
 
-        segloss_f = SEGMENTLOSS(logits_f, args.batch_size, point_indexs, gtlabel, actionExit_f, actionNoExit_f, device)
-        segloss_r = SEGMENTLOSS(logits_r, args.batch_size, point_indexs, gtlabel, actionExit_r, actionNoExit_r, device)
-        segment_final = SEGMENTLOSS(tcam, args.batch_size, point_indexs, gtlabel, actionExit, actionNoExit, device)
+        if itr % 2:
+            FLAG = True
+            actionExit_f, actionNoExit_f = SEGMENT(feature_f, logits_f, action_f, seq_len, args.batch_size,
+                                                   point_indexs, gtlabel, args, device)
+            actionExit_r, actionNoExit_r = SEGMENT(feature_r, logits_r, action_r, seq_len, args.batch_size,
+                                                   point_indexs, gtlabel, args, device)
+            actionExit, actionNoExit = SEGMENT(features, tcam, action_all, seq_len, args.batch_size, point_indexs,
+                                               gtlabel, args, device)
+            # print(actionExit_f[0])
+            segloss_f = SEGMENTLOSS(logits_f, args.batch_size, point_indexs, gtlabel, actionExit_f, actionNoExit_f,
+                                    device)
+            segloss_r = SEGMENTLOSS(logits_r, args.batch_size, point_indexs, gtlabel, actionExit_r, actionNoExit_r,
+                                    device)
+            segment_final = SEGMENTLOSS(tcam, args.batch_size, point_indexs, gtlabel, actionExit, actionNoExit, device)
+            segloss = segloss_f + segloss_r + segment_final
 
-        segloss = segloss_f + segloss_r + segment_final
+            actloss_f = ACTION2SEGLOSS(action_f, actionExit_f, actionNoExit_f, args.batch_size, device)
+            actloss_r = ACTION2SEGLOSS(action_r, actionExit_r, actionNoExit_r, args.batch_size, device)
+            actloss_final = ACTION2SEGLOSS(action_all, actionExit, actionNoExit, args.batch_size, device)
+            actloss = actloss_r + actloss_f + actloss_final
+            total_loss += segloss + actloss
+        else:
+            iploss_f = InPOINTSLOSS(logits_f, args.batch_size, point_indexs, gtlabel, device, itr, len=0)
+            iploss_r = InPOINTSLOSS(logits_r, args.batch_size, point_indexs, gtlabel, device, itr, len=0)
+            iploss_final = InPOINTSLOSS(tcam, args.batch_size, point_indexs, gtlabel, device, itr, len=0)
+            iploss = iploss_f + iploss_r + iploss_final
 
-        actloss_f = ACTION2SEGLOSS(action_f, actionExit_f, actionNoExit_f, args.batch_size, device)
-        actloss_r = ACTION2SEGLOSS(action_r, actionExit_r, actionNoExit_r, args.batch_size, device)
-        actloss_final = ACTION2SEGLOSS(action_all, actionExit, actionNoExit, args.batch_size, device)
-        actloss = actloss_r + actloss_f + actloss_final
-        total_loss += segloss + actloss
+            actloss_f = ACTIONLOSS(action_f, seq_len, args.batch_size, point_indexs, device, len=0)
+            actloss_r = ACTIONLOSS(action_r, seq_len, args.batch_size, point_indexs, device, len=0)
+            actloss_final = ACTIONLOSS(action_all, seq_len, args.batch_size, point_indexs, device, len=0)
+            actloss = actloss_r + actloss_f + actloss_final
+
+            total_loss += iploss + actloss
     else:
-        iploss_f = InPOINTSLOSS(logits_f, args.batch_size, point_indexs, gtlabel, device, itr, len=0)
-        iploss_r = InPOINTSLOSS(logits_r, args.batch_size, point_indexs, gtlabel, device, itr, len=0)
-        iploss_final = InPOINTSLOSS(tcam, args.batch_size, point_indexs, gtlabel, device, itr, len=0)
+        iploss_f = InPOINTSLOSS(logits_f, args.batch_size, point_indexs, gtlabel, device, itr, len=2)
+        iploss_r = InPOINTSLOSS(logits_r, args.batch_size, point_indexs, gtlabel, device, itr, len=2)
+        iploss_final = InPOINTSLOSS(tcam, args.batch_size, point_indexs, gtlabel, device, itr, len=2)
         iploss = iploss_f + iploss_r + iploss_final
 
-        actloss_f = ACTIONLOSS(action_f, seq_len, args.batch_size, point_indexs, device, len=0)
-        actloss_r = ACTIONLOSS(action_r, seq_len, args.batch_size, point_indexs, device, len=0)
-        actloss_final = ACTIONLOSS(action_all, seq_len, args.batch_size, point_indexs, device, len=0)
+        actloss_f = ACTIONLOSS(action_f, seq_len, args.batch_size, point_indexs, device, len=2)
+        actloss_r = ACTIONLOSS(action_r, seq_len, args.batch_size, point_indexs, device, len=2)
+        actloss_final = ACTIONLOSS(action_all, seq_len, args.batch_size, point_indexs, device, len=2)
         actloss = actloss_r + actloss_f + actloss_final
-
         total_loss += iploss + actloss
 
     bgMaybe_f, bgMaybe_r, bgMaybe = [], [], []
